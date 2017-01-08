@@ -1,28 +1,92 @@
+// Include the libraries we need for temperature sensor
+#include <OneWire.h>
+#include <DallasTemperature.h>
+
 /*
-* Getting Started example sketch for nRF24L01+ radios
-* This is a very basic example of how to send data from one node to another
-* Updated: Dec 2014 by TMRh20
+Now Radio module libraries
 */
 
 #include <SPI.h>
 #include "RF24.h"
 #include <printf.h>
 
-/****************** User Config ***************************/
+
+//-----------------variables for temperature sensor---------------
+int OneWireBus=34;
+int numberOfDevices;
+//double CurrentTemperature=0;
+
+// Setup a oneWire instance to communicate with any OneWire devices (not just Maxim/Dallas temperature ICs)
+OneWire oneWire(OneWireBus);
+
+// Pass our oneWire reference to Dallas Temperature. 
+DallasTemperature sensors(&oneWire);
+//---------------------------------------------------------------
+
+
+//--------------------------variables for radio module-----------------
 /***      Set this radio as radio number 0 or 1         ***/
 bool radioNumber = 0;
 
 /* Hardware configuration: Set up nRF24L01 radio on SPI bus plus pins 7 & 8 */
 RF24 radio(9,53); //9 is CE pin 53 is CSN
-/**********************************************************/
+
 
 byte addresses[][6] = {"1Node","2Node"};
 
 // Used to control whether this node is sending or receiving
 bool role = 0;
+//-------------------------------------------------------------------------
 
-void setup() {
+
+//=======================FUNCTIONS=======================
+/*
+ * Function get and print the temperature
+ */
+float GetTemp(DallasTemperature &sens)
+{ 
+  float CurrentTemperature=0;
+  int numberOfDevices=0;
+  // call sensors.requestTemperatures() to issue a global temperature 
+  // request to all devices on the bus
+  delay(3000);
+  
+  numberOfDevices = sens.getDeviceCount();
+
+  Serial.print("Requesting temperatures...");
+  sens.requestTemperatures(); // Send the command to get temperatures
+  Serial.println("DONE");
+  // After we got the temperatures, we can print them here.
+  // We use the function ByIndex, and as an example get the temperature from the first sensor only.
+  Serial.print("Temperature for the device 1 (index 0) is: ");
+  CurrentTemperature=sens.getTempCByIndex(0);
+  Serial.println(CurrentTemperature);
+
+  return CurrentTemperature;
+
+}
+//======================================================================================
+
+
+//SETUP
+void setup(void)
+{
+  //--------------------------Temperature sensor initialization----------------------------
+  // start serial port
   Serial.begin(115200);
+  Serial.println("Dallas Temperature IC Control Library Demo");
+
+  // Start up the library
+  sensors.begin();
+  numberOfDevices = sensors.getDeviceCount();
+
+  Serial.print("Found ");
+  Serial.print(numberOfDevices, DEC);
+  Serial.println(" devices.");
+  //----------------------------------------------------------------------------------------
+
+
+  //------------------------------------radio module initialization------------------------
   printf_begin();
   Serial.println(F("RF24/examples/GettingStarted"));
   Serial.println(F("*** PRESS 'T' to begin transmitting to the other node"));
@@ -47,7 +111,12 @@ void setup() {
   
   // Start the radio listening for data
   radio.startListening();
-}
+
+  //-------------------------------------------------------------------------------------
+}//setup
+
+
+
 
 void loop() {
   
@@ -60,10 +129,10 @@ if (role == 1)  {
     
     Serial.println(F("Now sending"));
 
-    unsigned long start_time = micros();    // Take the time, and send it.  This will block until complete
-   // unsigned long start_time=200;
+    float Temperature = GetTemp(sensors);    // Take the time, and send it.  This will block until complete
+    unsigned long start_time=micros();
     int transmitteddata=100;
-     if (!radio.write( &start_time, sizeof(start_time) )){
+     if (!radio.write( &Temperature, sizeof(Temperature) )){
        Serial.println(F("failed"));
      }
         
@@ -82,22 +151,22 @@ if (role == 1)  {
     if ( timeout ){                                             // Describe the results
         Serial.println(F("Failed, response timed out."));
     }else{
-        unsigned long got_time;                                 // Grab the response, compare, and send to debugging spew
-        radio.read( &got_time, sizeof(unsigned long) );
+        float RequestedTemperature;                                 // Grab the response, compare, and send to debugging spew
+        radio.read( &RequestedTemperature, sizeof(float) );
         unsigned long end_time = micros();
         
         // Spew it
-        Serial.print(F("Sent "));
-        Serial.print(start_time);
-        Serial.print(F(", Got response "));
-        Serial.print(got_time);
+        Serial.print(F("Sent measured Temperature="));
+        Serial.print(Temperature);
+        Serial.print(F(", Got response:RequestedTemperature="));
+        Serial.print(RequestedTemperature);
         Serial.print(F(", Round-trip delay "));
         Serial.print(end_time-start_time);
         Serial.println(F(" microseconds"));
     }
 
-    // Try again 1s later
-    delay(1000);
+    // Try again 5s later
+    delay(5000);
   }
 
 
