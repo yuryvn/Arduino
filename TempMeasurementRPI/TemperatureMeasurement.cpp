@@ -1,7 +1,7 @@
 
 
 /*
- Reading temperature from arduino and sending it back the required temperature
+ sending required temperature to arduino and receiving actual temperature reading
  */
 
 #include <cstdlib>
@@ -10,6 +10,8 @@
 #include <string>
 #include <unistd.h>
 #include <RF24/RF24.h>
+#include <stdio.h>
+#include <thread>
 
 using namespace std;
 //
@@ -65,14 +67,26 @@ bool radioNumber = 1;
 /********************************/
 
 // Radio pipe addresses for the 2 nodes to communicate.
-const uint8_t pipes[][6] = {"1Node","2Node"};
+const uint8_t pipes[][6] = {"Toch1","Toch2","Toch3"};
+const int PipesLength=3;
+
+
+char c='s';
+bool ExitTempLoop=false;
+	
+void Exit_loop_with_Thread(){
+	//catching ESC press
+	while(c!=27){
+		c=fgetc_unlocked(stdin);
+		std::cout<<c<<"\n";
+	}
+	return;
+}
 
 
 int main(int argc, char** argv){
 	float RequestedTemperature=150.0;
 
-  bool role_ping_out = true, role_pong_back = false;
-  bool role = role_pong_back;
 
   cout << "RF24/examples/GettingStarted/\n";
 
@@ -86,63 +100,68 @@ int main(int argc, char** argv){
   // Dump the configuration of the rf unit for debugging
   radio.printDetails();
 
-
-/********* Role chooser ***********/
-
-  printf("\n ************ Role Setup ***********\n");
-  string input = "";
-  char myChar = {0};
-  cout << "Choose a role: Enter 0 for pong_back, 1 for ping_out (CTRL+C to exit) \n>";
-  getline(cin,input);
-
-  if(input.length() == 1) {
-	myChar = input[0];
-	if(myChar == '0'){
-		cout << "Role: Pong Back, awaiting transmission " << endl << endl;
-	}else{  cout << "Role: Ping Out, starting transmission " << endl << endl;
-		role = role_ping_out;
-	}
-  }
-/***********************************/
-  // This simple sketch opens two pipes for these two nodes to communicate
-  // back and forth.
-
-    if ( !radioNumber )    {
-      radio.openWritingPipe(pipes[0]);
-      radio.openReadingPipe(1,pipes[1]);
-    } else {
-      radio.openWritingPipe(pipes[1]);
-      radio.openReadingPipe(1,pipes[0]);
-    }
+     	
+	unsigned long started_waiting_at=0;
+	bool ok;bool timeout;
+	float Temperature=0;
+	unsigned long got_time;
+	int Pipe=0;
 	
+
+	//open read and write pipes
+      radio.openWritingPipe(pipes[2]); //this time we will write to this arduino, change address for other arduinos
+      radio.openReadingPipe(1,pipes[0]); //read from first adress, it will be RPIs address
+
+
+
+	c='a';
+std::thread t1(Exit_loop_with_Thread);
+while(true){
+/********* temperature settings ***********/
+
+	std::cout<<"Set the requested temperature\n";
+	std::cin>>RequestedTemperature;
+	std::cout<<"Press ESC to set new temperature\n";
+/***********************************/
+c='a';
+ 
 	radio.startListening();
 	
+	
+	ExitTempLoop=0;
 	// forever loop
-	while (1)
-	{
-		if (role == role_ping_out)
-		{
+	Pipe=0;
+	while (!ExitTempLoop)
+	
+	{		
+		radio.stopListening();
+		if(Pipe<PipesLength-1)Pipe++;
+			else Pipe=1;
+			radio.openWritingPipe(pipes[Pipe]);
+			
+
 			// First, stop listening so we can talk.
-			radio.stopListening();
+			
 
 			// Take the time, and send it.  This will block until complete
-
+			std::cout<<"\n--------------------------------------------\n";
+			std::cout<<"Asking item "<<pipes[Pipe]<<"\n";
 			printf("Now sending...\n");
-			unsigned long time = millis();
+		
 
-			bool ok = radio.write( &time, sizeof(unsigned long) );
-
+			ok = radio.write( &RequestedTemperature, sizeof(float) );
+			started_waiting_at = millis();
 			if (!ok){
 				printf("failed.\n");
 			}
 			// Now, continue listening
 			radio.startListening();
 
-			// Wait here until we get a response, or timeout (250ms)
-			unsigned long started_waiting_at = millis();
-			bool timeout = false;
+			// Wait here until we get a response, or timeout (2s)
+
+			timeout = false;
 			while ( ! radio.available() && ! timeout ) {
-				if (millis() - started_waiting_at > 200 )
+				if (millis() - started_waiting_at > 10000 )
 					timeout = true;
 			}
 
@@ -155,51 +174,28 @@ int main(int argc, char** argv){
 			else
 			{
 				// Grab the response, compare, and send to debugging spew
-				unsigned long got_time;
-				radio.read( &got_time, sizeof(unsigned long) );
+				Temperature=0;
+				radio.read( &Temperature, sizeof(float) );
+				got_time=millis();
 
 				// Spew it
-				printf("Got response %lu, round-trip delay: %lu\n",got_time,millis()-got_time);
-			}
-			sleep(1);
-		}
-
-		//
-		// Pong back role.  Receive each packet, dump it out, and send it back
-		//
-
-		if ( role == role_pong_back )
-		{
-			
-			// if there is data ready
-			if ( radio.available() )
-			{
-				// Dump the payloads until we've gotten everything
-				float GotTemperature;
-
-				// Fetch the payload, and see if this was the last one.
-				while(radio.available()){
-					radio.read( &GotTemperature, sizeof(float) );
-				}
-				radio.stopListening();
-				
-				radio.write( &RequestedTemperature, sizeof(float) );
-
-				// Now, resume listening so we catch the next packets.
-				radio.startListening();
-
-				// Spew it
-				std::cout<<"Received Temperature="<<GotTemperature<<"\n";
+	
+				printf("Got response %lu, Startedwaiting %lu,round-trip delay: %lu\n",got_time,started_waiting_at,got_time-started_waiting_at);
 				std::cout<<"Requested Temperature="<<RequestedTemperature<<"\n";
-				
-				delay(925); //Delay after payload responded to, minimize RPi CPU time
-				
+				std::cout<<"Actual Temperature="<<Temperature<<"\n";
 			}
+			
+
+			if (c==27) ExitTempLoop=true;
+			
+			sleep(5);		
+
+
 		
-		}
+		
 
-	} // forever loop
-
+	} // temperature requests loop; is exited if ESC is pressed
+}//forever loop
   return 0;
 }
 
