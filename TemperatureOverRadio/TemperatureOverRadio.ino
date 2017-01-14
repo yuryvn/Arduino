@@ -10,6 +10,8 @@ Now Radio module libraries
 #include "RF24.h"
 #include <printf.h>
 
+//librariy for PID
+#include <PID_v1.h>
 
 //Transistor control
 
@@ -21,7 +23,12 @@ int TransistorPin=4;
 //-----------------variables for temperature sensor---------------
 int OneWireBus=34;
 int numberOfDevices;
-//double CurrentTemperature=0;
+float RequestedTemperature=0.0;
+float RequestedTemperatureOLD=0.0;
+float Eps=1.0e-6;
+    
+float Temperature = 0;
+
 
 // Setup a oneWire instance to communicate with any OneWire devices (not just Maxim/Dallas temperature ICs)
 OneWire oneWire(OneWireBus);
@@ -40,9 +47,27 @@ RF24 radio(9,53); //9 is CE pin 53 is CSN
 
 
 byte addresses[][6] = {"Toch1","Toch2"};
-
-
 //-------------------------------------------------------------------------
+
+
+
+
+//---------------------------Variables for PID---------------------------
+//Define Variables we'll be connecting to
+double Setpoint, Input, Output;
+
+
+//Specify the links and initial tuning parameters
+double Kp=2, Ki=5, Kd=1;
+PID myPID(&Input, &Output, &Setpoint, Kp, Ki, Kd, DIRECT);
+
+float WindowSize = 10;//range of pid output from 0 to this, it will be ratio of PIDSizeDuration when PID wants relay ON
+float PIDStepDuration=3000;//ms
+unsigned long windowStartTime;
+unsigned long currentTime;
+//-----------------------------------------------------------------------
+
+
 
 
 //=======================FUNCTIONS=======================
@@ -119,22 +144,30 @@ void setup(void)
 
   //-------------------------------------------------------------------------------------
 Serial.println("Waiting for input");
+
+//------------------------------PID INITIALIZATION-------------------------------
+  windowStartTime = millis();
+
+  //initialize the variables we're linked to
+  Setpoint = 26;
+
+  //tell the PID to range between 0 and the full window size
+  myPID.SetOutputLimits(0, WindowSize);
+
+  //turn the PID on
+  myPID.SetMode(AUTOMATIC);
+//----------------------------------------------------------------------------------
+
+
 }//setup
 
 
 
 
 void loop() {
-
-   digitalWrite(TransistorPin,LOW);
-   delay(2000);
-   digitalWrite(TransistorPin,HIGH);
   
-      unsigned long got_time;
-      float RequestedTemperature=0.0;
-    
-  float Temperature = GetTemp(sensors);    // Take reading, and send it.  This will block until complete
-    
+  Temperature = GetTemp(sensors);    // Take reading, and send it.  This will block until complete
+  RequestedTemperatureOLD=RequestedTemperature; //saving previous request
     if( radio.available()){
                                                                     // If receive radio signal
       while (radio.available()) {                                   // 
@@ -153,11 +186,67 @@ void loop() {
      }
     radio.startListening();
 
+    //now change set point for pid if new requested temperature is different to previous
+    if(abs(RequestedTemperatureOLD-RequestedTemperature)<Eps) Setpoint=RequestedTemperature;
+    
     Serial.print(F("Requested Temperature="));Serial.println(RequestedTemperature);
     Serial.print(F("Actual Temperature from Sensor="));Serial.println(Temperature);
     Serial.print(F("Sent at time="));Serial.println(start_time); 
     Serial.println(F("---------------------------------------------"));  
    }
+   
+//-------------------------PID CALCULATION------------------------------
+
+  currentTime=millis();
+  TimeDif=currentTime-windowStartTime
+  if (TimeDif<PIDStepDuration){
+    if ((float)TimeDif/PIDStepDuration)<Ratio)
+      digitalWrite(TransistorPin, HIGH);
+    else
+      digitalWrite(TransistorPin, LOW);
+  }
+  else{
+    windStartTime+=PIDStepDuration;
+    Input = Temperature;
+    myPID.Compute();
+    Ratio=Output/WindowSize;//Ratio if end of step matches exactly when last temperatrue was measured
+    //modified Ratio as most likely starting part of pid timestep the relaypin was still LOW
+    //due to previous relay pin timestep
+    //our pidtimestep is ideally divided into (HIGH__timeratio__LOW)
+    //and actuall will most likely be (LOW__startofnewpidtimestep__HIGH__timeration__LOW)
+    //we need to adjust timeratio so LOW time at the start + LOW time at the end of actual pidtimestep
+    //would be equal to total LOW time for ideal pidtimestep
+    //PIDStepDuration*Ratio is duration that PID wants to HIGH time
+    //TimeDif-PIDStepDuration  is duration of LOW dtransfered from previous pidtimestep to current one
+    //PIDStepDuration*Ratio+(TimeDif-PIDStepDuration) is when we actually want to swith relay to LOW again
+    Ratio=(PIDStepDuration*Ratio+(TimeDif-PIDStepDuration))/PIDStepDuration;   
+    }
+  
+  
+  Input = Temperature;
+  myPID.Compute();
+   
+    
+  /************************************************
+   * turn the output pin on/off based on pid output
+   ************************************************/
+  
+   Serial.print(F("PIDOutput="));Serial.println(Output);
+   Serial.print(F("currentTime="));Serial.println(currentTime);
+   Serial.print(F("currentTime - windowStartTime="));Serial.println(currentTime - windowStartTime);
+   Serial.print(F("windowStartTime="));Serial.println(windowStartTime);
+   
+  if (currentTime - windowStartTime > WindowSize)
+  { //time to shift the Relay Window
+    windowStartTime += WindowSize;
+  }
+  if (Output < currentTime - windowStartTime) digitalWrite(TransistorPin, HIGH);
+  else digitalWrite(TransistorPin, LOW);
+  //----------------------------------------------------------------
 
 } // Loop
+
+
+
+
 
