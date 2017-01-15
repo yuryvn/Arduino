@@ -80,6 +80,7 @@ void Exit_loop_with_Thread(){
 		c=fgetc_unlocked(stdin);
 		std::cout<<c<<"\n";
 	}
+	std::cout<<"ESC pressed\n";
 	return;
 }
 
@@ -189,7 +190,7 @@ while(true){
 			}
 			
 
-			if (c==27) {ExitTempLoop=true; t1.close;}
+			if (c==27) {ExitTempLoop=true; t1.join();}
 			
 			sleep(5);		
 
