@@ -115,8 +115,9 @@ int main(int argc, char** argv){
 
 
 	c='a';
-std::thread t1(Exit_loop_with_Thread);
+
 while(true){
+	std::thread t1(Exit_loop_with_Thread);
 /********* temperature settings ***********/
 
 	std::cout<<"Set the requested temperature\n";

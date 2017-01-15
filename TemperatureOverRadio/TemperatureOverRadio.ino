@@ -61,10 +61,12 @@ double Setpoint, Input, Output;
 double Kp=2, Ki=5, Kd=1;
 PID myPID(&Input, &Output, &Setpoint, Kp, Ki, Kd, DIRECT);
 
-float WindowSize = 10;//range of pid output from 0 to this, it will be ratio of PIDSizeDuration when PID wants relay ON
-float PIDStepDuration=3000;//ms
+float WindowSize = 100;//range of pid output from 0 to this, it will be ratio of PIDSizeDuration when PID wants relay ON
+float PIDStepDuration=5000;//ms
 unsigned long windowStartTime;
-unsigned long currentTime;
+unsigned long currentTime,TimeDif;
+float Ratio;
+int AlreadyRequested=0;
 //-----------------------------------------------------------------------
 
 
@@ -150,6 +152,7 @@ Serial.println("Waiting for input");
 
   //initialize the variables we're linked to
   Setpoint = 26;
+  AlreadyRequested=0;
 
   //tell the PID to range between 0 and the full window size
   myPID.SetOutputLimits(0, WindowSize);
@@ -165,8 +168,10 @@ Serial.println("Waiting for input");
 
 
 void loop() {
-  
-  Temperature = GetTemp(sensors);    // Take reading, and send it.  This will block until complete
+  if (millis()-windowStartTime>PIDStepDuration/2&&AlreadyRequested==0){
+    Temperature = GetTemp(sensors);    // Take reading in the middle of PIDtimestep.  This will block until complete
+    AlreadyRequested=1;
+  }
   RequestedTemperatureOLD=RequestedTemperature; //saving previous request
     if( radio.available()){
                                                                     // If receive radio signal
@@ -195,53 +200,45 @@ void loop() {
     Serial.println(F("---------------------------------------------"));  
    }
    
-//-------------------------PID CALCULATION------------------------------
+//-------------------------PID CALCULATION and switching relay------------------------------
 
   currentTime=millis();
-  TimeDif=currentTime-windowStartTime
+  TimeDif=currentTime-windowStartTime;
   if (TimeDif<PIDStepDuration){
-    if ((float)TimeDif/PIDStepDuration)<Ratio)
+    if ((float)TimeDif/PIDStepDuration<Ratio)
       digitalWrite(TransistorPin, HIGH);
     else
       digitalWrite(TransistorPin, LOW);
   }
   else{
-    windStartTime+=PIDStepDuration;
+    AlreadyRequested=0;//resetting temperature request counter
+    windowStartTime+=PIDStepDuration;
     Input = Temperature;
     myPID.Compute();
     Ratio=Output/WindowSize;//Ratio if end of step matches exactly when last temperatrue was measured
-    //modified Ratio as most likely starting part of pid timestep the relaypin was still LOW
-    //due to previous relay pin timestep
+    //need to modify Ratio as most likely during starting part of pid timestep the relaypin is still LOW
+    //due to previous relay pin timestep setting it so
     //our pidtimestep is ideally divided into (HIGH__timeratio__LOW)
     //and actuall will most likely be (LOW__startofnewpidtimestep__HIGH__timeration__LOW)
     //we need to adjust timeratio so LOW time at the start + LOW time at the end of actual pidtimestep
     //would be equal to total LOW time for ideal pidtimestep
     //PIDStepDuration*Ratio is duration that PID wants to HIGH time
-    //TimeDif-PIDStepDuration  is duration of LOW dtransfered from previous pidtimestep to current one
+    //TimeDif-PIDStepDuration  is duration of LOW transfered from previous pidtimestep to current one
     //PIDStepDuration*Ratio+(TimeDif-PIDStepDuration) is when we actually want to swith relay to LOW again
-    Ratio=(PIDStepDuration*Ratio+(TimeDif-PIDStepDuration))/PIDStepDuration;   
+    Ratio=(PIDStepDuration*Ratio+(TimeDif-PIDStepDuration))/PIDStepDuration;
+    TimeDif=currentTime-windowStartTime;
+    if ((float)TimeDif/PIDStepDuration<Ratio)
+      digitalWrite(TransistorPin, HIGH);
+    else
+      digitalWrite(TransistorPin, LOW);
+      
     }
-  
-  
-  Input = Temperature;
-  myPID.Compute();
-   
-    
-  /************************************************
-   * turn the output pin on/off based on pid output
-   ************************************************/
-  
-   Serial.print(F("PIDOutput="));Serial.println(Output);
-   Serial.print(F("currentTime="));Serial.println(currentTime);
-   Serial.print(F("currentTime - windowStartTime="));Serial.println(currentTime - windowStartTime);
-   Serial.print(F("windowStartTime="));Serial.println(windowStartTime);
-   
-  if (currentTime - windowStartTime > WindowSize)
-  { //time to shift the Relay Window
-    windowStartTime += WindowSize;
-  }
-  if (Output < currentTime - windowStartTime) digitalWrite(TransistorPin, HIGH);
-  else digitalWrite(TransistorPin, LOW);
+    if (millis()%1000>997){//trying to output each second
+     Serial.print(F("PIDOutput="));Serial.println(Output);
+     Serial.print(F("currentTime="));Serial.println(currentTime);
+     Serial.print(F("currentTime - windowStartTime="));Serial.println(currentTime - windowStartTime);
+     Serial.print(F("windowStartTime="));Serial.println(windowStartTime);
+     }
   //----------------------------------------------------------------
 
 } // Loop
