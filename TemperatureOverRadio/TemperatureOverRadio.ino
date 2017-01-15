@@ -58,7 +58,10 @@ double Setpoint, Input, Output;
 
 
 //Specify the links and initial tuning parameters
-double Kp=2, Ki=5, Kd=1;
+double Kp=5., Ki=1.0, Kd=0.8;
+//Conservative tuning parameters
+double consKp=0.01, consKi=0.001, consKd=10.0;
+double gap=8.;//if difference between target and actual is lower than this, change to conservative PID params
 PID myPID(&Input, &Output, &Setpoint, Kp, Ki, Kd, DIRECT);
 
 float WindowSize = 100;//range of pid output from 0 to this, it will be ratio of PIDSizeDuration when PID wants relay ON
@@ -211,6 +214,14 @@ void loop() {
       digitalWrite(TransistorPin, LOW);
   }
   else{
+    //switching pid parameters if we are close to the target
+    //switching back not at the same gap as we do not want to swtich back and forth when at the gap
+    //exactly
+    if (abs(Temperature-RequestedTemperature)<gap)
+      myPID.SetTunings(consKp, consKi, consKd);
+     else {
+      if (abs(Temperature-RequestedTemperature)>1.5*gap) myPID.SetTunings(Kp, Ki, Kd);
+     }
     AlreadyRequested=0;//resetting temperature request counter
     windowStartTime+=PIDStepDuration;
     Input = Temperature;
