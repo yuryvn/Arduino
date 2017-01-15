@@ -117,14 +117,16 @@ int main(int argc, char** argv){
 	c='a';
 
 while(true){
-	std::thread t1(Exit_loop_with_Thread);
+	
 /********* temperature settings ***********/
 
 	std::cout<<"Set the requested temperature\n";
 	std::cin>>RequestedTemperature;
 	std::cout<<"Press ESC to set new temperature\n";
 /***********************************/
-c='a';
+	c='a';
+	std::thread t1(Exit_loop_with_Thread);
+
  
 	radio.startListening();
 	
@@ -187,7 +189,7 @@ c='a';
 			}
 			
 
-			if (c==27) ExitTempLoop=true;
+			if (c==27) {ExitTempLoop=true; t1.close;}
 			
 			sleep(5);		
 
