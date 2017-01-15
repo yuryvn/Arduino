@@ -12,6 +12,11 @@
 #include <RF24/RF24.h>
 #include <stdio.h>
 #include <thread>
+#include <ctime>
+
+
+//for reading and writing to csv
+#include <fstream>
 
 using namespace std;
 //
@@ -67,6 +72,7 @@ bool radioNumber = 1;
 /********************************/
 
 // Radio pipe addresses for the 2 nodes to communicate.
+//First node is RPI itself
 const uint8_t pipes[][6] = {"Toch1","Toch2","Toch3"};
 const int PipesLength=3;
 
@@ -89,17 +95,15 @@ int main(int argc, char** argv){
 	float RequestedTemperature=150.0;
 
 
-  cout << "RF24/examples/GettingStarted/\n";
+	// Setup and configure rf radio
+	radio.begin();
+	radio.setPALevel(RF24_PA_LOW);
 
-  // Setup and configure rf radio
-  radio.begin();
-  radio.setPALevel(RF24_PA_LOW);
-
-  // optionally, increase the delay between retries & # of retries
-  radio.setRetries(15,15);
-  radio.setChannel(108);
-  // Dump the configuration of the rf unit for debugging
-  radio.printDetails();
+	// optionally, increase the delay between retries & # of retries
+	radio.setRetries(15,15);
+	radio.setChannel(108);
+	// Dump the configuration of the rf unit for debugging
+	radio.printDetails();
 
      	
 	unsigned long started_waiting_at=0;
@@ -107,22 +111,60 @@ int main(int argc, char** argv){
 	float Temperature=0;
 	unsigned long got_time;
 	int Pipe=0;
-	
+
 
 	//open read and write pipes
-      radio.openWritingPipe(pipes[2]); //this time we will write to this arduino, change address for other arduinos
-      radio.openReadingPipe(1,pipes[0]); //read from first adress, it will be RPIs address
+	radio.openWritingPipe(pipes[2]); //this time we will write to this arduino, change address for other arduinos
+	radio.openReadingPipe(1,pipes[0]); //read from first adress, it will be RPIs address
 
 
 
 	c='a';
+	
+	//writing to csv file
+	std::ofstream myfile;
+	std::string FilenamePrefix="Log";
+	std::string Filename;
+
+	// current date/time based on current system
+	time_t now = time(0);
+
+	tm *ltm = localtime(&now);
+
+   // print various components of tm structure.
+	cout << "Year" << 1900 + ltm->tm_year<<endl;
+	cout << "Month: "<< 1 + ltm->tm_mon<< endl;
+	cout << "Day: "<<  ltm->tm_mday << endl;
+	cout << "Time: "<< 1 + ltm->tm_hour << ":";
+	cout << 1 + ltm->tm_min << ":";
+	cout << 1 + ltm->tm_sec << endl;
+	// concatenate with C++11
+	Filename= FilenamePrefix +"_"+std::to_string(1900+ltm->tm_year)+"_"+std::to_string(1+ltm->tm_mon)+"_"+std::to_string(ltm->tm_mday)+
+		"_"+std::to_string(1 + ltm->tm_hour)+"_"+std::to_string(1 + ltm->tm_min)+"_"+std::to_string(1 + ltm->tm_sec)+".csv";
+	std::cout<<"Filename of log is "<<Filename<<"\n";
+	
+	myfile.open(Filename);
+
+	//components
+	for (int i=1;i<PipesLength;i++){
+		myfile<<pipes[i]<<"Time,"<<pipes[i]<<"RequestedTemperature[C],"<<pipes[i]<<"MeasuredTemperature[C],,";
+	}
+	myfile<<"\n";
+
+
+	
+
+	
+	
+	
 
 while(true){
 	
 /********* temperature settings ***********/
 
-	std::cout<<"Set the requested temperature\n";
+	std::cout<<"\n\nSet the requested temperature, or value<0 to exit:\n";
 	std::cin>>RequestedTemperature;
+	if (RequestedTemperature<0.0) break;
 	std::cout<<"Press ESC to set new temperature\n";
 /***********************************/
 	c='a';
@@ -140,7 +182,10 @@ while(true){
 	{		
 		radio.stopListening();
 		if(Pipe<PipesLength-1)Pipe++;
-			else Pipe=1;
+			else {
+				Pipe=1; //new cycle
+				myfile<<"\n"; //new beginning in log file
+			};
 			radio.openWritingPipe(pipes[Pipe]);
 			
 
@@ -183,10 +228,15 @@ while(true){
 				got_time=millis();
 
 				// Spew it
-	
+				
 				printf("Got response %lu, Startedwaiting %lu,round-trip delay: %lu\n",got_time,started_waiting_at,got_time-started_waiting_at);
 				std::cout<<"Requested Temperature="<<RequestedTemperature<<"\n";
 				std::cout<<"Actual Temperature="<<Temperature<<"\n";
+				//logging information
+				now=time(0);
+				myfile<<ctime(&now)<<","<<RequestedTemperature<<","<<Temperature<<",,";
+				
+				
 			}
 			
 
@@ -200,6 +250,9 @@ while(true){
 
 	} // temperature requests loop; is exited if ESC is pressed
 }//forever loop
-  return 0;
+		
+	myfile.close();	
+
+	return 0;
 }
 
