@@ -70,6 +70,7 @@ unsigned long windowStartTime;
 unsigned long currentTime,TimeDif;
 float Ratio;
 int AlreadyRequested=0;
+int SwitchedToNormal=0,SwitchedToCons=0;
 //-----------------------------------------------------------------------
 
 
@@ -188,7 +189,7 @@ void loop() {
           Serial.println(F("---------------------------------------------"));
     
     unsigned long start_time=micros();
-   // delay(1500);
+   // delay(1000);
       if (!radio.write( &Temperature, sizeof(Temperature) )){  //send actual temperature over radio
        Serial.println(F("failed"));
      }
@@ -218,9 +219,22 @@ void loop() {
     //switching back not at the same gap as we do not want to swtich back and forth when at the gap
     //exactly
     if (abs(Temperature-RequestedTemperature)<gap)
-      myPID.SetTunings(consKp, consKi, consKd);
+      {
+        if (SwitchedToCons==0){
+          myPID.SetTunings(consKp, consKi, consKd);
+          SwitchedToCons=1;
+          SwitchedToNormal=0;
+          Serial.println(F("SWITCHING TO CONSERVATIVE"));
+        }
+      }
      else {
-      if (abs(Temperature-RequestedTemperature)>1.5*gap) myPID.SetTunings(Kp, Ki, Kd);
+      if (abs(Temperature-RequestedTemperature)>1.5*gap&&SwitchedToNormal==0) {
+         myPID.SetTunings(Kp, Ki, Kd);
+         SwitchedToCons=0;
+         SwitchedToNormal=1;
+          Serial.println(F("SWITCHING TO NORMAL"));
+      }
+      
      }
     AlreadyRequested=0;//resetting temperature request counter
     windowStartTime+=PIDStepDuration;
@@ -253,8 +267,3 @@ void loop() {
   //----------------------------------------------------------------
 
 } // Loop
-
-
-
-
-
