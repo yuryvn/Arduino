@@ -135,19 +135,19 @@ int main(int argc, char** argv){
 	cout << "Year" << 1900 + ltm->tm_year<<endl;
 	cout << "Month: "<< 1 + ltm->tm_mon<< endl;
 	cout << "Day: "<<  ltm->tm_mday << endl;
-	cout << "Time: "<< 1 + ltm->tm_hour << ":";
-	cout << 1 + ltm->tm_min << ":";
-	cout << 1 + ltm->tm_sec << endl;
+	cout << "Time: "<< ltm->tm_hour << ":";
+	cout << ltm->tm_min << ":";
+	cout << ltm->tm_sec << endl;
 	// concatenate with C++11
 	Filename= FilenamePrefix +"_"+std::to_string(1900+ltm->tm_year)+"_"+std::to_string(1+ltm->tm_mon)+"_"+std::to_string(ltm->tm_mday)+
-		"_"+std::to_string(1 + ltm->tm_hour)+"_"+std::to_string(1 + ltm->tm_min)+"_"+std::to_string(1 + ltm->tm_sec)+".csv";
+		"_"+std::to_string(ltm->tm_hour)+"_"+std::to_string(ltm->tm_min)+"_"+std::to_string(ltm->tm_sec)+".csv";
 	std::cout<<"Filename of log is "<<Filename<<"\n";
 	
 	myfile.open(Filename);
 
 	//components
 	for (int i=1;i<PipesLength;i++){
-		myfile<<pipes[i]<<"Time,"<<pipes[i]<<"RequestedTemperature[C],"<<pipes[i]<<"MeasuredTemperature[C],,";
+		myfile<<pipes[i]<<"Date,"<<pipes[i]<<"Time,"<<pipes[i]<<"RequestedTemperature[C],"<<pipes[i]<<"MeasuredTemperature[C],,";
 	}
 	myfile<<"\n";
 
@@ -219,6 +219,14 @@ while(true){
 			if ( timeout )
 			{
 				printf("Failed, response timed out.\n");
+				
+				//Logging information
+				now=time(0);
+				ltm = localtime(&now);
+
+				myfile<<1900+ltm->tm_year<<1+ltm->tm_mon<<ltm->tm_mday<<","<<ltm->tm_hour<<
+					":"<<ltm->tm_min<<":"<<ltm->tm_sec<<","<<RequestedTemperature<<","<<"-1"<<",,";
+				
 			}
 			else
 			{
@@ -234,7 +242,11 @@ while(true){
 				std::cout<<"Actual Temperature="<<Temperature<<"\n";
 				//logging information
 				now=time(0);
-				myfile<<ctime(&now)<<","<<RequestedTemperature<<","<<Temperature<<",,";
+				ltm = localtime(&now);
+
+				myfile<<1900+ltm->tm_year<<1+ltm->tm_mon<<ltm->tm_mday<<","<<ltm->tm_hour<<
+					":"<<ltm->tm_min<<":"<<ltm->tm_sec<<","<<RequestedTemperature<<","<<Temperature<<",,";
+				//myfile<<ctime(&now)<<","<<RequestedTemperature<<","<<Temperature<<",,";
 				
 				
 			}
