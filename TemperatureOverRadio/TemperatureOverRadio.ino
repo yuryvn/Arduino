@@ -60,11 +60,11 @@ double Setpoint, Input, Output;
 //Specify the links and initial tuning parameters
 double Kp=5., Ki=1.0, Kd=0.8;
 //Conservative tuning parameters
-double consKp=0.01, consKi=0.001, consKd=10.0;
+double consKp=0.5, consKi=0.1000, consKd=2.0;
 double gap=8.;//if difference between target and actual is lower than this, change to conservative PID params
 PID myPID(&Input, &Output, &Setpoint, Kp, Ki, Kd, DIRECT);
 
-float WindowSize = 100;//range of pid output from 0 to this, it will be ratio of PIDSizeDuration when PID wants relay ON
+float WindowSize = 10;//range of pid output from 0 to this, it will be ratio of PIDSizeDuration when PID wants relay ON
 float PIDStepDuration=5000;//ms
 unsigned long windowStartTime;
 unsigned long currentTime,TimeDif;
