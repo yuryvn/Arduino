@@ -157,6 +157,7 @@ int main(int argc, char** argv){
 	
 	
 	
+Pipe = 0;
 
 while(true){
 	
@@ -176,7 +177,7 @@ while(true){
 	
 	ExitTempLoop=0;
 	// forever loop
-	Pipe=0;
+
 	while (!ExitTempLoop)
 	
 	{		
