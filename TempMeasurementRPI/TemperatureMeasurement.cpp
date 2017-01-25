@@ -112,7 +112,7 @@ int main(int argc, char** argv){
 	unsigned long got_time;
 	int Pipe=0;
 	long WrittenRows=0;
-	long MaxRows=10;
+	long MaxRows=20000;
 
 
 	//open read and write pipes
@@ -183,7 +183,7 @@ while(true){
 	while (!ExitTempLoop)
 	
 	{		
-		if (WrittenRow>MaxRows){//close this file and open next file for output
+		if (WrittenRows>MaxRows){//close this file and open next file for output
 			myfile.close();
 			
 			now = time(0);
