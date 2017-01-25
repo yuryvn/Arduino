@@ -111,6 +111,8 @@ int main(int argc, char** argv){
 	float Temperature=0;
 	unsigned long got_time;
 	int Pipe=0;
+	long WrittenRows=0;
+	long MaxRows=10;
 
 
 	//open read and write pipes
@@ -181,6 +183,29 @@ while(true){
 	while (!ExitTempLoop)
 	
 	{		
+		if (WrittenRow>MaxRows){//close this file and open next file for output
+			myfile.close();
+			
+			now = time(0);
+			ltm = localtime(&now);
+
+			// concatenate with C++11
+			Filename= FilenamePrefix +"_"+std::to_string(1900+ltm->tm_year)+"_"+std::to_string(1+ltm->tm_mon)+"_"+std::to_string(ltm->tm_mday)+
+				"_"+std::to_string(ltm->tm_hour)+"_"+std::to_string(ltm->tm_min)+"_"+std::to_string(ltm->tm_sec)+".csv";
+			std::cout<<"Filename of log is "<<Filename<<"\n";
+			
+			myfile.open(Filename);
+
+			//components
+			for (int i=1;i<PipesLength;i++){
+				myfile<<pipes[i]<<"Date,"<<pipes[i]<<"Time,"<<pipes[i]<<"RequestedTemperature[C],"<<pipes[i]<<"MeasuredTemperature[C],,";
+			}
+			myfile<<"\n";
+			
+			WrittenRows=0;//reset counter
+			
+		}
+		WrittenRows++;
 		radio.stopListening();
 		if(Pipe<PipesLength-1)Pipe++;
 			else {
@@ -193,7 +218,7 @@ while(true){
 			// First, stop listening so we can talk.
 			
 
-			// Take the time, and send it.  This will block until complete
+			// ask for temperatures  This will block until complete
 			std::cout<<"\n--------------------------------------------\n";
 			std::cout<<"Asking item "<<pipes[Pipe]<<"\n";
 			printf("Now sending...\n");
