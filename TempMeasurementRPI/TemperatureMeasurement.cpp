@@ -227,19 +227,43 @@ while(true){
 			ok = radio.write( &RequestedTemperature, sizeof(float) );
 			started_waiting_at = millis();
 			if (!ok){
-				printf("failed.\n");
+				printf("failed Sending.\n");
 			}
 			// Now, continue listening
 			radio.startListening();
 
-			// Wait here until we get a response, or timeout (2s)
+			// Wait here until we get a response, or timeout (1s)
 
 			timeout = false;
 			while ( ! radio.available() && ! timeout ) {
-				if (millis() - started_waiting_at > 10000 )
+				if (millis() - started_waiting_at > 2000 )
 					timeout = true;
 			}
 
+				//reask device for temperature if first request have not passed
+			if (timeout){
+				radio.stopListening();
+				std::cout<<"\n--------------------------------------------\n";
+				std::cout<<"ReAsking item "<<pipes[Pipe]<<"\n";
+				printf("Now sending...\n");
+			
+
+				ok = radio.write( &RequestedTemperature, sizeof(float) );
+				started_waiting_at = millis();
+				if (!ok){
+					printf("failed Sending.\n");
+				}
+				// Now, continue listening
+				radio.startListening();
+
+				// Wait here until we get a response, or timeout (1s)
+
+				timeout = false;
+				while ( ! radio.available() && ! timeout ) {
+					if (millis() - started_waiting_at > 2000 )
+						timeout = true;
+				}
+			}
 
 			// Describe the results
 			if ( timeout )
@@ -280,7 +304,7 @@ while(true){
 
 			if (c==27) {ExitTempLoop=true; t1.join();}
 			
-			sleep(5);		
+			sleep(3);		
 
 
 		
