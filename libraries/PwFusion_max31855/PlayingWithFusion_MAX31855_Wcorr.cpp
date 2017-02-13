@@ -122,6 +122,7 @@ uint32_t PWFusion_MAX31855_TC::spiread_32bits(void)
   uint8_t i;
   uint32_t four_bytes = 0;
   
+  SPI.beginTransaction (SPISettings (4000000, MSBFIRST, SPI_MODE0));//setting SPI bus
   digitalWrite(_cs, LOW);	// set CS low
   _delay_ms(1);			// allow state transistion time
   

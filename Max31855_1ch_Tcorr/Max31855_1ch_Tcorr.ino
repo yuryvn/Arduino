@@ -85,8 +85,9 @@ void setup()
 
   // setup for the the SPI library:
   SPI.begin();                        // begin SPI
-  SPI.setDataMode(SPI_MODE1);         // MAX31865 is a Mode 1 device
+  //SPI.setDataMode(SPI_MODE1);         // MAX31865 is a Mode 1 device
                                       //    --> clock starts low, read on rising edge
+ // SPI.beginTransaction (SPISettings (4000000, MSBFIRST, SPI_MODE0)); //actually it works with mode0, and with new time of SPI setting. the setting is actaully done in the .cpp file of the library. So not needed here.
   
   // initalize the chip select pins
   pinMode(CS0_PIN, OUTPUT);
@@ -99,7 +100,7 @@ void loop()
 {
   delay(1000);                                   // 500ms delay... can be much faster
   
-  static struct var_max31855 TC_CH0 = {0, 0, 0, T_type, 0};
+  static struct var_max31855 TC_CH0 = {0, 0, 0, J_type, 0};
   double tmp;
   struct var_max31855 *tc_ptr;
   
