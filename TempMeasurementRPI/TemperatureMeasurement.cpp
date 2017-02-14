@@ -73,15 +73,15 @@ bool radioNumber = 1;
 
 // Radio pipe addresses for the 2 nodes to communicate.
 //First node is RPI itself
-const uint8_t pipes[][6] = {"Toch1","Toch2","Toch3"};
-const int PipesLength=3;
+const uint8_t pipes[][6] = {"Toch1","Toch2","Toch3","Toch4"};
+const int PipesLength=4;
 
 
 char c='s';
 bool ExitTempLoop=false;
 	
 void Exit_loop_with_Thread(){
-	//catching ESC press
+	//catching ESC press it will be running asynchoniously
 	while(c!=27){
 		c=fgetc_unlocked(stdin);
 		std::cout<<c<<"\n";
@@ -92,9 +92,9 @@ void Exit_loop_with_Thread(){
 
 
 int main(int argc, char** argv){
-	float RequestedTemperature=150.0;
-
-
+	float RequestedTemperatures[PipesLength-1]={150,150,150};
+	float RequestedTemperature=150;
+	int Exit=0; //for exiting the program
 	// Setup and configure rf radio
 	radio.begin();
 	radio.setPALevel(RF24_PA_LOW);
@@ -164,10 +164,19 @@ Pipe = 0;
 while(true){
 	
 /********* temperature settings ***********/
-
+	Exit=0;//reset exit, if existed
 	std::cout<<"\n\nSet the requested temperature, or value<0 to exit:\n";
-	std::cin>>RequestedTemperature;
-	if (RequestedTemperature<0.0) break;
+	std::cout<<"We have "<<PipesLength-1<<" devices, set temperature for each of them\n";
+	for (int i=1;i<PipeLength;i++){
+		std::cout<<"Input Temperature for device "<<pipes[i]<<"(Previous=)"<<RequestedTemperatures[i-1]<<":";
+		
+		std::cin>>RequestedTemperatures[i-1];
+		if (RequestedTemperatures[i-1]<0.0){//we stop for cycle, and then stop program
+			Exit=1;
+			break; 
+		}
+	}
+	if (Exit==1) break;
 	std::cout<<"Press ESC to set new temperature\n";
 /***********************************/
 	c='a';
@@ -221,9 +230,9 @@ while(true){
 			// ask for temperatures  This will block until complete
 			std::cout<<"\n--------------------------------------------\n";
 			std::cout<<"Asking item "<<pipes[Pipe]<<"\n";
-			printf("Now sending...\n");
+			printf("Now sending requested temperature...\n");
 		
-
+			RequestedTemperature=RequestedTemperatures[pipe-1];
 			ok = radio.write( &RequestedTemperature, sizeof(float) );
 			started_waiting_at = millis();
 			if (!ok){
