@@ -103,7 +103,7 @@ int main(int argc, char** argv){
 	radio.setRetries(15,15);
 	radio.setChannel(108);
 	// Dump the configuration of the rf unit for debugging
-	radio.printDetails();
+	
 
      	
 	unsigned long started_waiting_at=0;
@@ -116,10 +116,10 @@ int main(int argc, char** argv){
 
 
 	//open read and write pipes
-	radio.openWritingPipe(pipes[2]); //this time we will write to this arduino, change address for other arduinos
+	radio.openWritingPipe(pipes[1]); //this time we will write to this arduino, change address for other arduinos
 	radio.openReadingPipe(1,pipes[0]); //read from first adress, it will be RPIs address
 
-
+	radio.printDetails();
 
 	c='a';
 	
@@ -160,15 +160,15 @@ int main(int argc, char** argv){
 	
 	
 Pipe = 0;
-
+//RequestedTemperature=150;
 while(true){
 	
 /********* temperature settings ***********/
 	Exit=0;//reset exit, if existed
 	std::cout<<"\n\nSet the requested temperature, or value<0 to exit:\n";
 	std::cout<<"We have "<<PipesLength-1<<" devices, set temperature for each of them\n";
-	for (int i=1;i<PipeLength;i++){
-		std::cout<<"Input Temperature for device "<<pipes[i]<<"(Previous=)"<<RequestedTemperatures[i-1]<<":";
+	for (int i=1;i<PipesLength;i++){
+		std::cout<<"Input Temperature for device "<<pipes[i]<<"(Previous="<<RequestedTemperatures[i-1]<<"):";
 		
 		std::cin>>RequestedTemperatures[i-1];
 		if (RequestedTemperatures[i-1]<0.0){//we stop for cycle, and then stop program
@@ -216,11 +216,14 @@ while(true){
 		}
 		WrittenRows++;
 		radio.stopListening();
+		sleep(1);
 		if(Pipe<PipesLength-1)Pipe++;
 			else {
 				Pipe=1; //new cycle
 				myfile<<"\n"; //new beginning in log file
 			};
+			RequestedTemperature=(float)RequestedTemperatures[Pipe-1];
+			
 			radio.openWritingPipe(pipes[Pipe]);
 			
 
@@ -231,8 +234,8 @@ while(true){
 			std::cout<<"\n--------------------------------------------\n";
 			std::cout<<"Asking item "<<pipes[Pipe]<<"\n";
 			printf("Now sending requested temperature...\n");
-		
-			RequestedTemperature=RequestedTemperatures[pipe-1];
+			std::cout<<"sending Requested temperature="<<RequestedTemperature<<"\n";
+			sleep(1);
 			ok = radio.write( &RequestedTemperature, sizeof(float) );
 			started_waiting_at = millis();
 			if (!ok){
@@ -252,6 +255,7 @@ while(true){
 				//reask device for temperature if first request have not passed
 			if (timeout){
 				radio.stopListening();
+				sleep(1);
 				std::cout<<"\n--------------------------------------------\n";
 				std::cout<<"ReAsking item "<<pipes[Pipe]<<"\n";
 				printf("Now sending...\n");
