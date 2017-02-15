@@ -47,7 +47,7 @@ bool radioNumber = 0;
 RF24 radio(9,53); //9 is CE pin 53 is CSN
 
 
-byte addresses[][6] = {"Toch1","Toch2"};
+byte addresses[][6] = {"Toch1","Toch4"};
 //-------------------------------------------------------------------------
 
 
@@ -66,7 +66,7 @@ double gap=8.;//if difference between target and actual is lower than this, chan
 PID myPID(&Input, &Output, &Setpoint, Kp, Ki, Kd, DIRECT);
 
 float WindowSize = 10;//range of pid output from 0 to this, it will be ratio of PIDSizeDuration when PID wants relay ON
-float PIDStepDuration=10000;//ms
+float PIDStepDuration=5000;//ms
 unsigned long windowStartTime;
 unsigned long currentTime,TimeDif;
 float Ratio;
@@ -144,16 +144,17 @@ void setup(void)
   // Set the PA Level low to prevent power supply related issues since this is a
  // getting_started sketch, and the likelihood of close proximity of the devices. RF24_PA_MAX is default.
   radio.setPALevel(RF24_PA_LOW);
+  radio.setRetries(15,15);
 //  radio.setDataRate(RF24_250KBPS);
   radio.setChannel(108);
-  radio.printDetails();
+  
   
   // Open a writing and reading pipe on each radio, with opposite addresses
 
     radio.openWritingPipe(addresses[0]); //we will write to first adress, the first address will be RPIs
     radio.openReadingPipe(1,addresses[1]);//this arduino address
  
-  
+  radio.printDetails();
   // Start the radio listening for data
   radio.startListening();
 
@@ -183,9 +184,9 @@ Serial.println("Waiting for input");
 void loop() {
   if (millis()-windowStartTime>PIDStepDuration/2&&AlreadyRequested==0){
     Temperature = GetTemp(thermocouple0);    // Take reading in the middle of PIDtimestep.  This will block until complete
-
     AlreadyRequested=1;
   }
+
   RequestedTemperatureOLD=RequestedTemperature; //saving previous request
     if( radio.available()){
                                                                     // If receive radio signal

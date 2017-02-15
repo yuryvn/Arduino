@@ -28,7 +28,7 @@ int TransistorPin=4;
 //-----------------variables for temperature sensor---------------
 // setup CS pins used for the connection with the sensor
 // other connections are controlled by the SPI library)
-int8_t CS0_PIN = 3;
+int8_t CS0_PIN = 2;
 PWFusion_MAX31855_TC  thermocouple0(CS0_PIN);
 float RequestedTemperature=0.0;
 float RequestedTemperatureOLD=0.0;
@@ -144,16 +144,17 @@ void setup(void)
   // Set the PA Level low to prevent power supply related issues since this is a
  // getting_started sketch, and the likelihood of close proximity of the devices. RF24_PA_MAX is default.
   radio.setPALevel(RF24_PA_LOW);
+  radio.setRetries(15,15);
 //  radio.setDataRate(RF24_250KBPS);
   radio.setChannel(108);
-  radio.printDetails();
+  
   
   // Open a writing and reading pipe on each radio, with opposite addresses
 
     radio.openWritingPipe(addresses[0]); //we will write to first adress, the first address will be RPIs
     radio.openReadingPipe(1,addresses[1]);//this arduino address
  
-  
+  radio.printDetails();
   // Start the radio listening for data
   radio.startListening();
 
@@ -185,6 +186,7 @@ void loop() {
     Temperature = GetTemp(thermocouple0);    // Take reading in the middle of PIDtimestep.  This will block until complete
     AlreadyRequested=1;
   }
+
   RequestedTemperatureOLD=RequestedTemperature; //saving previous request
     if( radio.available()){
                                                                     // If receive radio signal
