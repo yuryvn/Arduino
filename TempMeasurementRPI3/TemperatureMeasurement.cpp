@@ -95,7 +95,6 @@ void Exit_loop_with_Thread(){
 
 int main(int argc, char** argv){
 	float RequestedTemperatures[SensorsNumber] = { 150, 150, 150 };
-	float RequestedTemperature=150;
 	int Exit=0; //for exiting the program
 	// Setup and configure rf radio
 	radio.begin();
@@ -112,7 +111,6 @@ int main(int argc, char** argv){
 	bool ok;bool timeout;
 	float Temperature[3] = { 0, 0, 0 };
 	unsigned long got_time;
-	int Pipe=0;
 	long WrittenRows=0;
 	long MaxRows=20000;
 
@@ -150,7 +148,7 @@ int main(int argc, char** argv){
 	myfile.open(Filename);
 
 	//components
-	myfile << SensorsNames[i] << "Date," << SensorsNames[i] << "Time,"
+	myfile << "Date," << "Time,";
 	for (int i=0;i<SensorsNumber;i++){
 		myfile << SensorsNames[i] << "RequestedTemperature[C]," << SensorsNames[i] << "MeasuredTemperature[C],,";
 	}
@@ -291,7 +289,7 @@ while(true){
 				":" << ltm->tm_min << ":" << ltm->tm_sec << ",";
 
 			for (int i = 0; i<SensorsNumber; i++){
-				myfile << << RequestedTemperatures[i] << "," << -1 << ",,";
+				myfile << RequestedTemperatures[i] << "," << -1 << ",,";
 			}
 			myfile << "\n";
 				
@@ -299,14 +297,14 @@ while(true){
 		else
 		{
 			// Grab the response, compare, and send to debugging spew
-			Temperature=0;
+			
 			radio.read(&Temperature, sizeof(Temperature));
 			got_time=millis();
 
 			// Spew it
 				
 			printf("Got response %lu, Startedwaiting %lu,round-trip delay: %lu\n",got_time,started_waiting_at,got_time-started_waiting_at);
-			std::cout<<std::setw(30)<<std::left<<"Requested Temperatures[C]="<<std::setw(30)<<std::left<<"Actual Temperatures[C]=\n";
+			std::cout<<std::setw(30)<<std::left<<"Requested Temperatures[C]="<<std::setw(30)<<std::left<<"Actual Temperatures[C]"<<"=\n";
 			
 			for (int j = 0; j < SensorsNumber; j++){
 				std::cout << std::setw(30) << std::left << RequestedTemperatures[j] << std::setw(30) << std::left <<Temperature[j] << "\n";
@@ -320,7 +318,7 @@ while(true){
 				":" << ltm->tm_min << ":" << ltm->tm_sec << ","; 
 			
 			for (int i = 0; i<SensorsNumber; i++){
-				myfile << << RequestedTemperatures[i] << "," << Temperature[i] << ",,";
+				myfile << RequestedTemperatures[i] << "," << Temperature[i] << ",,";
 				}
 			myfile << "\n";
 			//myfile<<ctime(&now)<<","<<RequestedTemperature<<","<<Temperature<<",,";
