@@ -5,6 +5,7 @@
 #include <PlayingWithFusion_MAX31855_T_correction.h>
 #include <PlayingWithFusion_MAX31855_Wcorr.h>
 
+#define K_type 1
 #define J_type 2
 #define T_type 3
 
@@ -141,7 +142,7 @@ float GetTemp(PWFusion_MAX31855_TC &sens)
 { 
   double tmp;
   float CurrentTemperature=0;
-  static struct var_max31855 TC_CH = {0, 0, 0, J_type, 0};
+  static struct var_max31855 TC_CH = {0, 0, 0, T_type, 0};
   struct var_max31855 *tc_ptr;
   // call sensors.requestTemperatures() to issue a global temperature 
   // request to all devices on the bus
