@@ -21,11 +21,12 @@ Now Radio module libraries
 
 //Transistor control
 
-int TransistorPin=4;
+
 
 //direct relay control
-int Relay1Pin=11;
-int Relay2Pin=12;
+int Relay1Pin=4; //relay for thermocouple 2
+int Relay2Pin=11; //second relay for thermocouple 2
+int Relay3Pin=12; //relay for thermocouple 3
 
 
 
@@ -33,9 +34,9 @@ int Relay2Pin=12;
 //-----------------variables for temperature sensor---------------
 // setup CS pins used for the connection with the sensor
 // other connections are controlled by the SPI library)
-int8_t CS0_PIN = 3;
-int8_t CS1_PIN = 6;
-int8_t CS2_PIN = 10;
+int8_t CS0_PIN = 3; //marked 1
+int8_t CS1_PIN = 6; //marked 2
+int8_t CS2_PIN = 10; //marked 3
 
 
 
@@ -117,7 +118,7 @@ int SwitchedToNormal=0,SwitchedToCons=0;
 
 float RatioArray[3]={1,1,1};
 int AlreadyRequestedArray[3]={0,0,0};
-int SwitchedToNormalArray[3]={0,0,0}, SwitchedToConsArray[3]={0,0,0};
+int SwitchedToNormalArray[3]={0,0,0}, SwitchedToConsArray[3]={0,0,0}; //boolean for checks if we already changed parameters for PID
 
 unsigned long windowStartTimeArray[3];
 unsigned long currentTimeArray[3],TimeDifArray[3];
@@ -176,15 +177,14 @@ float GetTemp(PWFusion_MAX31855_TC &sens)
 //SETUP
 void setup(void)
 {
-//------------------transistor setup------------------------
-  pinMode(TransistorPin, OUTPUT);
-  digitalWrite(TransistorPin,LOW);
-//----------------------------------------------------------
+
 //------------------relay setup setup------------------------
   pinMode(Relay1Pin, OUTPUT);
   digitalWrite(Relay1Pin,LOW);
   pinMode(Relay2Pin, OUTPUT);
   digitalWrite(Relay2Pin,LOW);
+  pinMode(Relay3Pin, OUTPUT);
+  digitalWrite(Relay3Pin,LOW);
 //----------------------------------------------------------
   
   //--------------------------Temperature sensor initialization----------------------------
@@ -258,6 +258,9 @@ void loop() {
 for(int k=0;k<3;k++){
   
   if (millis()-windowStartTimeArray[k]>PIDStepDurationArray[k]/2&&AlreadyRequestedArray[k]==0){
+    Serial.print(F("-----------AskingThermocouple "));
+    Serial.print(k+1);
+    Serial.println(F("-----------"));
     TemperatureArray[k] = GetTemp(thermocouple[k]);    // Take reading in the middle of PIDtimestep.  This will block until complete
 
     AlreadyRequestedArray[k]=1;
@@ -303,16 +306,16 @@ for(int k=0;k<3;k++){
   if (TimeDifArray[k]<PIDStepDurationArray[k]){
     if ((float)TimeDifArray[k]/PIDStepDurationArray[k]<RatioArray[k])
       switch (k){
-        case 0:   {digitalWrite(TransistorPin, HIGH); break;}
-        case 1: {digitalWrite(Relay1Pin, LOW); break;}
-        case 2: {digitalWrite(Relay2Pin, LOW); break;}
+        case 0:   {break;}
+        case 1: {digitalWrite(Relay1Pin, HIGH);digitalWrite(Relay2Pin, HIGH); break;}//switching 2 together
+        case 2: {digitalWrite(Relay3Pin, HIGH); break;}
         }
       
     else
         switch (k){
-        case 0:   {digitalWrite(TransistorPin, LOW); break;}
-        case 1: {digitalWrite(Relay1Pin, HIGH); break;}
-        case 2: {digitalWrite(Relay2Pin, HIGH); break;}
+        case 0:   { break;}
+        case 1: {digitalWrite(Relay2Pin, LOW);digitalWrite(Relay1Pin, LOW); break;}//switching 2 together
+        case 2: {digitalWrite(Relay3Pin, LOW); break;}
         }
   }
   else{
@@ -371,15 +374,15 @@ for(int k=0;k<3;k++){
     TimeDifArray[k]=currentTimeArray[k]-windowStartTimeArray[k];
     if ((float)TimeDifArray[k]/PIDStepDurationArray[k]<RatioArray[k])
         switch (k){
-        case 0:   {digitalWrite(TransistorPin, HIGH); break;}
-        case 1: {digitalWrite(Relay1Pin, LOW); break;}
-        case 2: {digitalWrite(Relay2Pin, LOW); break;}
+        case 0:   { break;}
+        case 1: {digitalWrite(Relay2Pin, HIGH);digitalWrite(Relay1Pin, HIGH); break;}
+        case 2: {digitalWrite(Relay3Pin, HIGH); break;}
         }
     else
         switch (k){
-        case 0:   {digitalWrite(TransistorPin, LOW); break;}
-        case 1: {digitalWrite(Relay1Pin, HIGH); break;}
-        case 2: {digitalWrite(Relay2Pin, HIGH); break;}
+        case 0:   { break;}
+        case 1: {digitalWrite(Relay2Pin, LOW); digitalWrite(Relay1Pin, LOW);break;}
+        case 2: {digitalWrite(Relay3Pin, LOW); break;}
         }
       
     }

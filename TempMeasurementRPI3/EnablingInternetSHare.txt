@@ -1,0 +1,14 @@
+ 
+ connect Pi
+ Go to network properties and remove sharing
+ use powershell with command to set Pi connection as private network (assuming interface is number 6):
+ Set-NetConnectionProfile -InterfaceIndex 6 -NetworkCategory Private
+  Go to network properties and allow sharing
+  
+  
+  
+  
+  to find connection number use Get-NetConnectionProfile
+  
+  
+  
