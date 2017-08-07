@@ -21,7 +21,8 @@ Now Radio module libraries
 
 //Transistor control
 
-
+const float TC2Cor[8]={-3.82371217e-12 ,  9.59537434e-10 , -1.54011212e-09 , -1.23583681e-05,   9.18982104e-04 , -2.36002184e-02 ,  1.46579258e+00 , -6.13656839e+00};
+const float TC3Cor[8]={-2.88994787e-12   ,9.83797425e-10,  -9.60434093e-08   ,1.98371664e-06,   1.35986650e-04  ,-6.54505392e-03  , 1.33944386e+00 , -6.03994568e+00};
 
 //direct relay control
 int Relay1Pin=4; //relay for thermocouple 2
@@ -171,6 +172,22 @@ float GetTemp(PWFusion_MAX31855_TC &sens)
   return CurrentTemperature;
 
 }
+float ThermocoupleCorrection(float T,int TCnumber){
+  float Res=0.0;
+  if (TCnumber==2){
+    for (int i=0;i<8;i++){
+      Res=Res+TC2Cor[i]*pow(T,7-i);
+      }
+      return Res;
+    }
+  if (TCnumber==3){
+    for (int i=0;i<8;i++){
+      Res=Res+TC3Cor[i]*pow(T,7-i);
+      }
+      return Res;
+    }
+  return T;
+  }
 //======================================================================================
 
 
@@ -207,7 +224,7 @@ void setup(void)
 
   // Set the PA Level low to prevent power supply related issues since this is a
  // getting_started sketch, and the likelihood of close proximity of the devices. RF24_PA_MAX is default.
-  radio.setPALevel(RF24_PA_LOW);
+  radio.setPALevel(RF24_PA_HIGH);
 //  radio.setDataRate(RF24_250KBPS);
   radio.setChannel(108);
   radio.printDetails();
@@ -262,7 +279,10 @@ for(int k=0;k<3;k++){
     Serial.print(k+1);
     Serial.println(F("-----------"));
     TemperatureArray[k] = GetTemp(thermocouple[k]);    // Take reading in the middle of PIDtimestep.  This will block until complete
-
+    
+    TemperatureArray[k]=ThermocoupleCorrection(TemperatureArray[k],k+1);
+    Serial.print(F("Corrected temperature= "));
+    Serial.println(TemperatureArray[k]);
     AlreadyRequestedArray[k]=1;
   }
   RequestedTemperatureOLDArray[k]=RequestedTemperatureArray[k]; //saving previous request
