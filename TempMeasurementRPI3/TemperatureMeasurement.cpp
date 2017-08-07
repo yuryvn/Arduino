@@ -98,7 +98,7 @@ int main(int argc, char** argv){
 	int Exit=0; //for exiting the program
 	// Setup and configure rf radio
 	radio.begin();
-	radio.setPALevel(RF24_PA_LOW);
+	radio.setPALevel(RF24_PA_HIGH);
 
 	// optionally, increase the delay between retries & # of retries
 	radio.setRetries(15,15);
