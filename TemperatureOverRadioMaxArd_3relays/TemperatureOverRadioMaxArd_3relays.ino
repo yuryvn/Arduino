@@ -143,7 +143,7 @@ float GetTemp(PWFusion_MAX31855_TC &sens)
 { 
   double tmp;
   float CurrentTemperature=0;
-  static struct var_max31855 TC_CH = {0, 0, 0, T_type, 0};
+  static struct var_max31855 TC_CH = {0, 0, 0, J_type, 0};
   struct var_max31855 *tc_ptr;
   // call sensors.requestTemperatures() to issue a global temperature 
   // request to all devices on the bus
@@ -307,15 +307,15 @@ for(int k=0;k<3;k++){
     if ((float)TimeDifArray[k]/PIDStepDurationArray[k]<RatioArray[k])
       switch (k){
         case 0:   {break;}
-        case 1: {digitalWrite(Relay1Pin, HIGH);digitalWrite(Relay2Pin, HIGH); break;}//switching 2 together
-        case 2: {digitalWrite(Relay3Pin, HIGH); break;}
+        case 1: {digitalWrite(Relay1Pin, LOW);digitalWrite(Relay2Pin, LOW); break;}//switching 2 together
+        case 2: {digitalWrite(Relay3Pin, LOW); break;}
         }
       
     else
         switch (k){
         case 0:   { break;}
-        case 1: {digitalWrite(Relay2Pin, LOW);digitalWrite(Relay1Pin, LOW); break;}//switching 2 together
-        case 2: {digitalWrite(Relay3Pin, LOW); break;}
+        case 1: {digitalWrite(Relay2Pin, HIGH);digitalWrite(Relay1Pin, HIGH); break;}//switching 2 together
+        case 2: {digitalWrite(Relay3Pin, HIGH); break;}
         }
   }
   else{
@@ -375,14 +375,14 @@ for(int k=0;k<3;k++){
     if ((float)TimeDifArray[k]/PIDStepDurationArray[k]<RatioArray[k])
         switch (k){
         case 0:   { break;}
-        case 1: {digitalWrite(Relay2Pin, HIGH);digitalWrite(Relay1Pin, HIGH); break;}
-        case 2: {digitalWrite(Relay3Pin, HIGH); break;}
+        case 1: {digitalWrite(Relay2Pin, LOW);digitalWrite(Relay1Pin, LOW); break;}
+        case 2: {digitalWrite(Relay3Pin, LOW); break;}
         }
     else
         switch (k){
         case 0:   { break;}
-        case 1: {digitalWrite(Relay2Pin, LOW); digitalWrite(Relay1Pin, LOW);break;}
-        case 2: {digitalWrite(Relay3Pin, LOW); break;}
+        case 1: {digitalWrite(Relay2Pin, HIGH); digitalWrite(Relay1Pin, HIGH);break;}
+        case 2: {digitalWrite(Relay3Pin, HIGH); break;}
         }
       
     }
