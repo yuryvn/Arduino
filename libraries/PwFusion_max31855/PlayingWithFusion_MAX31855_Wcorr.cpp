@@ -50,6 +50,7 @@
 #include "PlayingWithFusion_MAX31855_Wcorr.h"
 #include "PlayingWithFusion_MAX31855_J_correction.h"
 #include "PlayingWithFusion_MAX31855_T_correction.h"
+#include "PlayingWithFusion_MAX31855_K_correction.h"
 
 PWFusion_MAX31855_TC::PWFusion_MAX31855_TC(int8_t CSx)
 {
@@ -214,6 +215,37 @@ float PWFusion_MAX31855_TC::TCcorrection(uint8_t _tc_type, int16_t _tc_value, in
 	  else
       {	  
 	    temp_val = 0-T_temp_offset;
+      }
+	  return temp_val;
+	}
+   }
+   else if(1 == _tc_type)
+   {
+	// K-type
+	base_mV = (double)_ref_jct_tmp * 0.002545625;	// 0.0625*40.73/1000 (ref scaling * ref coeff (uV/C) / 1000)
+	tc_mV = ((double)_tc_value-((double)_ref_jct_tmp*0.25)) * 0.010319; // 41.276/4/1000 (1/4 degC/bit, 1mV/1000uV)
+	// it is worth noting that multiplying the ref jct temp by 0.25 is actually 0.0625 C/bit * 4 so it matches the scaling of the TC value
+	to_0C_mV = base_mV + tc_mV;
+	while((index<670) && (to_0C_mV > temp_idx)) // in-bounds and mV < table value
+	{
+	  index++;
+	  temp_idx = pgm_read_float(K_voltage + index);
+	}
+	if(670==index) // last element = max temperature range. 400C for T-Type.
+	{
+	  return 1372;
+	}
+	else
+	{
+	  if(0<index)
+	  {
+	    temp_idx      = pgm_read_float(K_voltage + index);
+	    temp_idx_min1 = pgm_read_float(K_voltage + index - 1);
+	    temp_val = ((double)index - K_temp_offset - 1) + ((to_0C_mV - temp_idx_min1)/(temp_idx - temp_idx_min1));
+	  }
+	  else
+      {	  
+	    temp_val = 0-K_temp_offset;
       }
 	  return temp_val;
 	}
