@@ -144,7 +144,7 @@ float GetTemp(PWFusion_MAX31855_TC &sens)
 { 
   double tmp;
   float CurrentTemperature=0;
-  static struct var_max31855 TC_CH = {0, 0, 0, J_type, 0};
+  static struct var_max31855 TC_CH = {0, 0, 0, K_type, 0};
   struct var_max31855 *tc_ptr;
   // call sensors.requestTemperatures() to issue a global temperature 
   // request to all devices on the bus
@@ -174,6 +174,7 @@ float GetTemp(PWFusion_MAX31855_TC &sens)
 }
 float ThermocoupleCorrection(float T,int TCnumber){
   float Res=0.0;
+  /*
   if (TCnumber==2){
     for (int i=0;i<8;i++){
       Res=Res+TC2Cor[i]*pow(T,7-i);
@@ -186,6 +187,7 @@ float ThermocoupleCorrection(float T,int TCnumber){
       }
       return Res;
     }
+	*/
   return T;
   }
 //======================================================================================

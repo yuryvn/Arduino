@@ -226,12 +226,12 @@ float PWFusion_MAX31855_TC::TCcorrection(uint8_t _tc_type, int16_t _tc_value, in
 	tc_mV = ((double)_tc_value-((double)_ref_jct_tmp*0.25)) * 0.010319; // 41.276/4/1000 (1/4 degC/bit, 1mV/1000uV)
 	// it is worth noting that multiplying the ref jct temp by 0.25 is actually 0.0625 C/bit * 4 so it matches the scaling of the TC value
 	to_0C_mV = base_mV + tc_mV;
-	while((index<670) && (to_0C_mV > temp_idx)) // in-bounds and mV < table value
+	while((index<1643) && (to_0C_mV > temp_idx)) // in-bounds and mV < table value
 	{
 	  index++;
 	  temp_idx = pgm_read_float(K_voltage + index);
 	}
-	if(670==index) // last element = max temperature range. 400C for T-Type.
+	if(1643==index) // last element = max temperature range. 400C for T-Type.
 	{
 	  return 1372;
 	}
