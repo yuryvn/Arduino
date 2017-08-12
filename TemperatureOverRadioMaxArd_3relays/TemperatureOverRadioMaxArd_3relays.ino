@@ -143,6 +143,7 @@ float PIDStepDurationArray[3]={10000,10000,10000};//ms
 float GetTemp(PWFusion_MAX31855_TC &sens)
 { 
   double tmp;
+  float tmpNIST;
   float CurrentTemperature=0;
   static struct var_max31855 TC_CH = {0, 0, 0, K_type, 0};
   struct var_max31855 *tc_ptr;
@@ -161,9 +162,10 @@ float GetTemp(PWFusion_MAX31855_TC &sens)
   else{Serial.println(tmp);}
   // MAX31855 External (thermocouple) Temp
   tmp = (double)TC_CH.value * 0.25;           // convert fixed pt # to double
-  CurrentTemperature=(float)tmp;
+  tmpNIST=TC_CH.Tcorr;
+  CurrentTemperature=tmpNIST;
   Serial.print("TC Temp = ");                   // print TC temp heading
-  if(0x00 == TC_CH.status){Serial.println(tmp);}
+  if(0x00 == TC_CH.status){Serial.print(tmp);Serial.print("  TC TempNIST = ");Serial.println(tmpNIST);}
   else if(0x01 == TC_CH.status){Serial.println("OPEN");}
   else if(0x02 == TC_CH.status){Serial.println("SHORT TO GND");}
   else if(0x04 == TC_CH.status){Serial.println("SHORT TO Vcc");}
