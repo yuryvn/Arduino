@@ -21,8 +21,8 @@ Now Radio module libraries
 
 //Transistor control
 
-const float TC2Cor[8]={-3.82371217e-12 ,  9.59537434e-10 , -1.54011212e-09 , -1.23583681e-05,   9.18982104e-04 , -2.36002184e-02 ,  1.46579258e+00 , -6.13656839e+00};
-const float TC3Cor[8]={-2.88994787e-12   ,9.83797425e-10,  -9.60434093e-08   ,1.98371664e-06,   1.35986650e-04  ,-6.54505392e-03  , 1.33944386e+00 , -6.03994568e+00};
+const float TC2Cor[8]={-6.79944106e-11,    2.12578449e-08  ,-2.58139169e-06  , 1.52993700e-04  ,-4.51395515e-03 ,  5.86492656e-02 ,  8.04053702e-01 , -7.76299369e-01};
+const float TC3Cor[8]={8.23502361e-12,-2.71227131e-09,3.52275001e-07,-2.28472567e-05,7.68644887e-04,-1.18258241e-02,1.05176552e+00,-1.10395984e+00};
 
 //direct relay control
 int Relay1Pin=4; //relay for thermocouple 2
@@ -145,7 +145,7 @@ float GetTemp(PWFusion_MAX31855_TC &sens)
   double tmp;
   float tmpNIST;
   float CurrentTemperature=0;
-  static struct var_max31855 TC_CH = {0, 0, 0, K_type, 0};
+  static struct var_max31855 TC_CH = {0, 0, 0, T_type, 0};
   struct var_max31855 *tc_ptr;
   // call sensors.requestTemperatures() to issue a global temperature 
   // request to all devices on the bus
@@ -176,7 +176,7 @@ float GetTemp(PWFusion_MAX31855_TC &sens)
 }
 float ThermocoupleCorrection(float T,int TCnumber){
   float Res=0.0;
-  /*
+  
   if (TCnumber==2){
     for (int i=0;i<8;i++){
       Res=Res+TC2Cor[i]*pow(T,7-i);
@@ -189,7 +189,7 @@ float ThermocoupleCorrection(float T,int TCnumber){
       }
       return Res;
     }
-	*/
+	
   return T;
   }
 //======================================================================================
